@@ -1,0 +1,77 @@
+---
+- name: Query and Terminate EC2 Instances
+  hosts: localhost
+  gather_facts: false
+  vars:
+    aws_region: "{{ region }}"  # Pass the region via extra vars
+    ec2_filter: "{{ filter }}"  # Pass the filter via extra vars
+
+  tasks:
+    - name: Gather EC2 instances with filter
+      amazon.aws.ec2_instance_info:
+        region: "{{ aws_region }}"
+        filters:
+          "tag:Name": "{{ ec2_filter }}"
+      register: ec2_info
+
+    - name: Check if instances were found
+      debug:
+        msg: "No instances found with the specified filter."
+      when: ec2_info.instances | length == 0
+
+    - name: List EC2 instances that match the filter
+      debug:
+        msg: "Instance ID: {{ item.instance_id }} | State: {{ item.state.name }} | Tags: {{ item.tags }}"
+      loop: "{{ ec2_info.instances }}"
+
+    - name: Prompt user for confirmation before disabling termination protection
+      pause:
+        prompt: |
+          The following instances match the filter and have termination protection enabled:
+          {% for instance in ec2_info.instances %}
+            - Instance ID: {{ instance.instance_id }} | Tags: {{ instance.tags }}
+          {% endfor %}
+          Are you sure you want to disable termination protection for these instances? (yes/no)
+      register: confirm_protection_disable
+
+    - name: Fail if user does not confirm disabling termination protection
+      fail:
+        msg: "Aborted disabling termination protection."
+      when: confirm_protection_disable.user_input != 'yes'
+
+    - name: Disable termination protection for the instances
+      amazon.aws.ec2_instance:
+        region: "{{ aws_region }}"
+        instance_ids: "{{ item.instance_id }}"
+        termination_protection: false
+        state: stopped
+      loop: "{{ ec2_info.instances }}"
+      when: item.state.name != "terminated"
+      register: termination_protection_disabled
+
+    - name: Prompt user for confirmation before termination
+      pause:
+        prompt: |
+          The following instances have termination protection disabled and will be terminated:
+          {% for instance in ec2_info.instances %}
+            - Instance ID: {{ instance.instance_id }} | Tags: {{ instance.tags }}
+          {% endfor %}
+          Are you sure you want to terminate these instances? (yes/no)
+      register: confirm_termination
+
+    - name: Fail if user does not confirm termination
+      fail:
+        msg: "Termination aborted by user."
+      when: confirm_termination.user_input != 'yes'
+
+    - name: Terminate the EC2 instances
+      amazon.aws.ec2_instance:
+        region: "{{ aws_region }}"
+        instance_ids: "{{ item.instance_id }}"
+        state: terminated
+      loop: "{{ ec2_info.instances }}"
+      when: confirm_termination.user_input == 'yes'
+
+    - name: Confirm termination
+      debug:
+        msg: "Instances have been successfully terminated."
