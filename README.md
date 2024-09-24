@@ -35,17 +35,17 @@ Before running the playbook, ensure the following:
 
 Run the playbook using the following command:
 
-Add `your_filter` to filter the instances you want to terminate. This might be your username.
+Add `your_user_name` to filter the instances you want to terminate.
 
-> [!IMPORTANT]  
+> [!WARNING]
 > Be careful when running this playbook. It will terminate all EC2 instances that match the filter.
 
 ```bash
-podman run --rm \
-    -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-    -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-    -e AWS_REGION=$AWS_REGION \
-    -v $(pwd):/playbook \
+podman run --rm -it \
+    -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+    -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+    -e AWS_REGION="$AWS_REGION" \
+    -v "$(pwd)":/playbook \
     ansible-ec2-termination \
-    -e "filter=your_filter region=$AWS_REGION" /playbook/terminate_ec2_instances.yml
+    -e "filter=your_user_name region=$AWS_REGION" /playbook/terminate_ec2_instances.yml
 ```

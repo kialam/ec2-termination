@@ -11,7 +11,7 @@
       amazon.aws.ec2_instance_info:
         region: "{{ aws_region }}"
         filters:
-          "tag:Name": "{{ ec2_filter }}"
+          "tag:jenkins_build_user_id": "{{ ec2_filter }}"
       register: ec2_info
 
     - name: Check if instances were found
