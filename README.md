@@ -28,8 +28,15 @@ Before running the playbook, ensure the following:
    1. Assuming the Dockerfile is in the current directory, run the following command to build the container image:
 
    ```bash
-   podman build -t terminate_ec2_instances .
+   podman build -t terminate_ec2_instances:local .
+
    ```
+
+4. Verify the container image is built successfully by running the following command:
+
+```bash
+podman images
+```
 
 ## Usage
 
@@ -46,6 +53,7 @@ podman run --rm -it \
     -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
     -e AWS_REGION="$AWS_REGION" \
     -v "$(pwd)":/playbook \
-    ansible-ec2-termination \
-    -e "filter=your_user_name region=$AWS_REGION" /playbook/terminate_ec2_instances.yml
+    terminate_ec2_instances:local \
+    ansible-playbook /playbook/terminate_ec2_instances.yml \
+    -e "filter=your_use_name region=$AWS_REGION"
 ```
